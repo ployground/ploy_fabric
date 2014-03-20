@@ -114,6 +114,7 @@ def do(self, task, *args, **kwargs):
     env.reject_unknown_hosts = True
     env.disable_known_hosts = True
     env.known_hosts = self.master.known_hosts
+    env.server = self
 
     fabfile = self.config['fabfile']
     with open(fabfile) as f:
