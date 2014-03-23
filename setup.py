@@ -15,12 +15,12 @@ setup(
     namespace_packages=['mr'],
     install_requires=[
         'setuptools',
-        'mr.awsome',
+        'mr.awsome >= 1.0dev',
         'Fabric >= 1.3.0'
     ],
     setup_requires=[
         'setuptools-git'],
     entry_points="""
         [mr.awsome.plugins]
-        fabric = mr.awsome.fabric:plugin
+        fabric = mr.awsome_fabric:plugin
     """)

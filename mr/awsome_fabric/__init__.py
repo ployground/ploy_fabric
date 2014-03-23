@@ -31,7 +31,7 @@ class FabricDoCmd(object):
         old_sys_argv = sys.argv
         old_cwd = os.getcwd()
 
-        from mr.awsome.fabric import fabric_integration
+        from mr.awsome_fabric import fabric_integration
         # this needs to be done before any other fabric module import
         fabric_integration.patch()
 
@@ -101,7 +101,7 @@ class FabricDoCmd(object):
 
 
 def do(self, task, *args, **kwargs):
-    from mr.awsome.fabric import fabric_integration
+    from mr.awsome_fabric import fabric_integration
     # this needs to be done before any other fabric module import
     fabric_integration.patch()
     orig_instances = fabric_integration.instances
