@@ -26,8 +26,6 @@ setup(
         'mr.awsome >= 1.0dev',
         'Fabric >= 1.3.0'
     ],
-    setup_requires=[
-        'setuptools-git'],
     entry_points="""
         [mr.awsome.plugins]
         fabric = mr.awsome_fabric:plugin
