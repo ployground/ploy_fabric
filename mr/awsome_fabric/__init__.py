@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import argparse
 import logging
 import os
@@ -5,6 +6,37 @@ import sys
 
 
 log = logging.getLogger('mr.awsome.fabric')
+
+
+class StdFilter(object):
+    def __init__(self, org):
+        self.org = org
+        self.flush = self.org.flush
+
+    def isatty(self):
+        return False
+
+    def write(self, msg):
+        import fabric.state
+        lines = msg.split('\n')
+        prefix = '[%s] ' % fabric.state.env.host_string
+        for index, line in enumerate(lines):
+            if line.startswith(prefix):
+                lines[index] = line[len(prefix):]
+        self.org.write('\n'.join(lines))
+
+
+@contextmanager
+def std_filters():
+    old_stdout = sys.stdout
+    old_stderr = sys.stderr
+    if not isinstance(sys.stdout, StdFilter):
+        sys.stdout = StdFilter(sys.stdout)
+    if not isinstance(sys.stderr, StdFilter):
+        sys.stderr = StdFilter(sys.stderr)
+    yield
+    sys.stdout = old_stdout
+    sys.stderr = old_stderr
 
 
 class FabricDoCmd(object):
@@ -67,32 +99,8 @@ class FabricDoCmd(object):
             fabric.state.env.known_hosts = known_hosts
             fabric.state.env.config_base = self.aws.config.path
 
-            class StdFilter(object):
-                def __init__(self, org):
-                    self.org = org
-                    self.flush = self.org.flush
-
-                def isatty(self):
-                    return False
-
-                def write(self, msg):
-                    lines = msg.split('\n')
-                    prefix = '[%s] ' % fabric.state.env.host_string
-                    for index, line in enumerate(lines):
-                        if line.startswith(prefix):
-                            lines[index] = line[len(prefix):]
-                    self.org.write('\n'.join(lines))
-
-            old_stdout = sys.stdout
-            old_stderr = sys.stderr
-            try:
-                sys.stdout = StdFilter(sys.stdout)
-                sys.stderr = StdFilter(sys.stderr)
-
+            with std_filters():
                 fabric.main.main()
-            finally:
-                sys.stdout = old_stdout
-                sys.stderr = old_stderr
         finally:
             if fabric.state.connections.opened(hoststr):  # pragma: no cover
                 fabric.state.connections[hoststr].close()
@@ -129,7 +137,8 @@ def do(self, task, *args, **kwargs):
     env.host_string = "{}@{}".format(
         self.config.get('user', 'root'),
         self.id)
-    result = callables[task](*args, **kwargs)
+    with std_filters():
+        result = callables[task](*args, **kwargs)
     fabric_integration.instances = orig_instances
     fabric_integration.log = orig_log
     del env['reject_unknown_hosts']
