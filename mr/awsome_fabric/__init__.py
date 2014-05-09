@@ -114,7 +114,7 @@ def do(self, task, *args, **kwargs):
     fabric_integration.patch()
     orig_instances = fabric_integration.instances
     orig_log = fabric_integration.log
-    fabric_integration.instances = self.master.instances
+    fabric_integration.instances = self.master.aws.instances
     fabric_integration.log = log
 
     from fabric.main import extract_tasks
