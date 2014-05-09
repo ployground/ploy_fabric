@@ -38,6 +38,7 @@ class DoCommandTests(TestCase):
         self.assertIn("argument instance: invalid choice: 'foo'", output)
 
     def testCallWithExistingInstanceButTooViewArguments(self):
+        import mr.awsome_fabric
         import mr.awsome.tests.dummy_plugin
         self.aws.plugins = {
             'dummy': mr.awsome.tests.dummy_plugin.plugin,
@@ -50,6 +51,7 @@ class DoCommandTests(TestCase):
         LogMock.error.assert_called_with('No fabfile declared.')
 
     def testCallWithMissingFabfileDeclaration(self):
+        import mr.awsome_fabric
         import mr.awsome.tests.dummy_plugin
         self.aws.plugins = {
             'dummy': mr.awsome.tests.dummy_plugin.plugin,
@@ -62,6 +64,7 @@ class DoCommandTests(TestCase):
         LogMock.error.assert_called_with('No fabfile declared.')
 
     def testCallWithExistingInstance(self):
+        import mr.awsome_fabric
         import mr.awsome.tests.dummy_plugin
         self.aws.plugins = {
             'dummy': mr.awsome.tests.dummy_plugin.plugin,
