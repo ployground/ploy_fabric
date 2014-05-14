@@ -157,6 +157,12 @@ def get_commands(aws):
         ('do', FabricDoCmd(aws))]
 
 
+def get_massagers():
+    from mr.awsome.config import PathMassager
+    return [PathMassager(None, 'fabfile')]
+
+
 plugin = dict(
     augment_instance=augment_instance,
-    get_commands=get_commands)
+    get_commands=get_commands,
+    get_massagers=get_massagers)
