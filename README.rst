@@ -1,8 +1,11 @@
 Changelog
 =========
 
-1.0b2 - Unreleased
+1.0b2 - 2014-05-15
 ------------------
+
+* Register ``fabfile`` massager for all instances.
+  [fschulze]
 
 * Use context manager for output filtering and filter in ``do`` helper.
   [fschulze]
