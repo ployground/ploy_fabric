@@ -17,7 +17,7 @@ install_requires = [
 try:
     import fabric
 except ImportError:
-    install_requires.append('Fabric >= 1.3.0')
+    install_requires.append('Fabric>=1.3.0,!=1.8.3')
 
 
 setup(
