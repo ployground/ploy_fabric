@@ -4,6 +4,10 @@ Changelog
 1.0b3 - unreleased
 ------------------
 
+* Only add Fabric to install_requires if it can't be imported. That way we
+  don't get problems if it's already installed as a system packages or in a
+  virtualenv.
+  [fschulze]
 
 
 1.0b2 - 2014-05-15

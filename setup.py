@@ -9,6 +9,17 @@ README = open(os.path.join(here, 'README.rst')).read()
 version = "1.0b3"
 
 
+install_requires = [
+    'setuptools',
+    'mr.awsome >= 1.0rc2']
+
+
+try:
+    import fabric
+except ImportError:
+    install_requires.append('Fabric >= 1.3.0')
+
+
 setup(
     version=version,
     description="A plugin for mr.awsome providing integration with Fabric.",
@@ -21,11 +32,7 @@ setup(
     zip_safe=False,
     packages=['mr'],
     namespace_packages=['mr'],
-    install_requires=[
-        'setuptools',
-        'mr.awsome >= 1.0rc2',
-        'Fabric >= 1.3.0'
-    ],
+    install_requires=install_requires,
     entry_points="""
         [mr.awsome.plugins]
         fabric = mr.awsome_fabric:plugin
