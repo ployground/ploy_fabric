@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.0b3 - unreleased
+1.0b3 - 2014-06-09
 ------------------
 
 * When depending on Fabric, skip 1.8.3 which added a version pin on paramiko.
