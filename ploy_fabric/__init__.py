@@ -5,7 +5,7 @@ import os
 import sys
 
 
-log = logging.getLogger('mr.awsome.fabric')
+log = logging.getLogger('ploy_fabric')
 
 
 class StdFilter(object):
@@ -42,17 +42,17 @@ def std_filters():
 class FabricDoCmd(object):
     """Run Fabric"""
 
-    def __init__(self, aws):
-        self.aws = aws
+    def __init__(self, ctrl):
+        self.ctrl = ctrl
 
     def __call__(self, argv, help):
         """Do stuff on the cluster (using fabric)"""
         parser = argparse.ArgumentParser(
-            prog="aws do",
+            prog="%s do" % self.ctrl.progname,
             description=help,
             add_help=False,
         )
-        instances = self.aws.get_instances(command='init_ssh_key')
+        instances = self.ctrl.get_instances(command='init_ssh_key')
         parser.add_argument("server", nargs=1,
                             metavar="instance",
                             help="Name of the instance or server from the config.",
@@ -63,7 +63,7 @@ class FabricDoCmd(object):
         old_sys_argv = sys.argv
         old_cwd = os.getcwd()
 
-        from mr.awsome_fabric import fabric_integration
+        from ploy_fabric import fabric_integration
         # this needs to be done before any other fabric module import
         fabric_integration.patch()
 
@@ -72,7 +72,7 @@ class FabricDoCmd(object):
 
         hoststr = None
         try:
-            fabric_integration.instances = self.aws.instances
+            fabric_integration.instances = self.ctrl.instances
             fabric_integration.log = log
             hoststr = argv[0]
             server = instances[hoststr]
@@ -93,11 +93,11 @@ class FabricDoCmd(object):
 
             # setup environment
             os.chdir(os.path.dirname(fabfile))
-            fabric.state.env.servers = self.aws.instances
+            fabric.state.env.servers = self.ctrl.instances
             fabric.state.env.server = server
-            known_hosts = self.aws.known_hosts
+            known_hosts = self.ctrl.known_hosts
             fabric.state.env.known_hosts = known_hosts
-            fabric.state.env.config_base = self.aws.config.path
+            fabric.state.env.config_base = self.ctrl.config.path
 
             with std_filters():
                 fabric.main.main()
@@ -109,12 +109,12 @@ class FabricDoCmd(object):
 
 
 def do(self, task, *args, **kwargs):
-    from mr.awsome_fabric import fabric_integration
+    from ploy_fabric import fabric_integration
     # this needs to be done before any other fabric module import
     fabric_integration.patch()
     orig_instances = fabric_integration.instances
     orig_log = fabric_integration.log
-    fabric_integration.instances = self.master.aws.instances
+    fabric_integration.instances = self.master.ctrl.instances
     fabric_integration.log = log
 
     from fabric.main import extract_tasks
@@ -152,13 +152,13 @@ def augment_instance(instance):
         instance.do = do.__get__(instance, instance.__class__)
 
 
-def get_commands(aws):
+def get_commands(ctrl):
     return [
-        ('do', FabricDoCmd(aws))]
+        ('do', FabricDoCmd(ctrl))]
 
 
 def get_massagers():
-    from mr.awsome.config import PathMassager
+    from ploy.config import PathMassager
     return [PathMassager(None, 'fabfile')]
 
 

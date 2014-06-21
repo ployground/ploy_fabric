@@ -4,6 +4,8 @@ Changelog
 1.0b4 - unreleased
 ------------------
 
+* Renamed mr.awsome to ploy and mr.awsome.fabric to ploy_fabric.
+  [fschulze]
 
 
 1.0b3 - 2014-06-09

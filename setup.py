@@ -11,7 +11,7 @@ version = "1.0b4"
 
 install_requires = [
     'setuptools',
-    'mr.awsome >= 1.0rc2']
+    'ploy >= 1.0rc9']
 
 
 try:
@@ -22,18 +22,17 @@ except ImportError:
 
 setup(
     version=version,
-    description="A plugin for mr.awsome providing integration with Fabric.",
+    description="A plugin for ploy providing integration with Fabric.",
     long_description=README + "\n\n",
-    name="mr.awsome.fabric",
+    name="ploy_fabric",
     author='Florian Schulze',
     author_email='florian.schulze@gmx.net',
-    url='http://github.com/fschulze/mr.awsome.fabric',
+    url='http://github.com/ployground/ploy_fabric',
     include_package_data=True,
     zip_safe=False,
-    packages=['mr'],
-    namespace_packages=['mr'],
+    packages=['ploy_fabric'],
     install_requires=install_requires,
     entry_points="""
-        [mr.awsome.plugins]
-        fabric = mr.awsome_fabric:plugin
+        [ploy.plugins]
+        fabric = ploy_fabric:plugin
     """)

@@ -1,5 +1,5 @@
 from mock import patch
-from mr.awsome import AWS
+from ploy import Controller
 from unittest2 import TestCase
 import os
 import shutil
@@ -9,66 +9,66 @@ import tempfile
 class DoCommandTests(TestCase):
     def setUp(self):
         self.directory = tempfile.mkdtemp()
-        self.aws = AWS(self.directory)
+        self.ctrl = Controller(self.directory)
 
     def tearDown(self):
         shutil.rmtree(self.directory)
         del self.directory
 
     def _write_config(self, content):
-        with open(os.path.join(self.directory, 'aws.conf'), 'w') as f:
+        with open(os.path.join(self.directory, 'ploy.conf'), 'w') as f:
             f.write(content)
 
     def testCallWithNoArguments(self):
         self._write_config('')
         with patch('sys.stderr') as StdErrMock:
             with self.assertRaises(SystemExit):
-                self.aws(['./bin/aws', 'do'])
+                self.ctrl(['./bin/ploy', 'do'])
         output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
-        self.assertIn('usage: aws do', output)
+        self.assertIn('usage: ploy do', output)
         self.assertIn('too few arguments', output)
 
     def testCallWithNonExistingInstance(self):
         self._write_config('')
         with patch('sys.stderr') as StdErrMock:
             with self.assertRaises(SystemExit):
-                self.aws(['./bin/aws', 'do', 'foo'])
+                self.ctrl(['./bin/ploy', 'do', 'foo'])
         output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
-        self.assertIn('usage: aws do', output)
+        self.assertIn('usage: ploy do', output)
         self.assertIn("argument instance: invalid choice: 'foo'", output)
 
     def testCallWithExistingInstanceButTooViewArguments(self):
-        import mr.awsome_fabric
-        import mr.awsome.tests.dummy_plugin
-        self.aws.plugins = {
-            'dummy': mr.awsome.tests.dummy_plugin.plugin,
-            'fabric': mr.awsome_fabric.plugin}
+        import ploy_fabric
+        import ploy.tests.dummy_plugin
+        self.ctrl.plugins = {
+            'dummy': ploy.tests.dummy_plugin.plugin,
+            'fabric': ploy_fabric.plugin}
         self._write_config('\n'.join([
             '[dummy-instance:foo]']))
-        with patch('mr.awsome_fabric.log') as LogMock:
+        with patch('ploy_fabric.log') as LogMock:
             with self.assertRaises(SystemExit):
-                self.aws(['./bin/aws', 'do', 'foo'])
+                self.ctrl(['./bin/ploy', 'do', 'foo'])
         LogMock.error.assert_called_with('No fabfile declared.')
 
     def testCallWithMissingFabfileDeclaration(self):
-        import mr.awsome_fabric
-        import mr.awsome.tests.dummy_plugin
-        self.aws.plugins = {
-            'dummy': mr.awsome.tests.dummy_plugin.plugin,
-            'fabric': mr.awsome_fabric.plugin}
+        import ploy_fabric
+        import ploy.tests.dummy_plugin
+        self.ctrl.plugins = {
+            'dummy': ploy.tests.dummy_plugin.plugin,
+            'fabric': ploy_fabric.plugin}
         self._write_config('\n'.join([
             '[dummy-instance:foo]']))
-        with patch('mr.awsome_fabric.log') as LogMock:
+        with patch('ploy_fabric.log') as LogMock:
             with self.assertRaises(SystemExit):
-                self.aws(['./bin/aws', 'do', 'foo', 'something'])
+                self.ctrl(['./bin/ploy', 'do', 'foo', 'something'])
         LogMock.error.assert_called_with('No fabfile declared.')
 
     def testCallWithExistingInstance(self):
-        import mr.awsome_fabric
-        import mr.awsome.tests.dummy_plugin
-        self.aws.plugins = {
-            'dummy': mr.awsome.tests.dummy_plugin.plugin,
-            'fabric': mr.awsome_fabric.plugin}
+        import ploy_fabric
+        import ploy.tests.dummy_plugin
+        self.ctrl.plugins = {
+            'dummy': ploy.tests.dummy_plugin.plugin,
+            'fabric': ploy_fabric.plugin}
         fabfile = os.path.join(self.directory, 'fabfile.py')
         self._write_config('\n'.join([
             '[dummy-instance:foo]',
@@ -78,9 +78,9 @@ class DoCommandTests(TestCase):
             f.write('\n'.join([
                 'def something():',
                 '    print "something"']))
-        from mr.awsome_fabric import fabric_integration
+        from ploy_fabric import fabric_integration
         # this needs to be done before any other fabric module import
         fabric_integration.patch()
         with patch('fabric.main.main') as FabricMainMock:
-            self.aws(['./bin/aws', 'do', 'foo', 'something'])
+            self.ctrl(['./bin/ploy', 'do', 'foo', 'something'])
         FabricMainMock.assert_called_with()
