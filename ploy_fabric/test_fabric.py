@@ -1,4 +1,4 @@
-from mock import patch
+from mock import MagicMock, patch
 from ploy import Controller
 import os
 import pytest
@@ -57,7 +57,7 @@ class TestDoCommand:
                 self.ctrl(['./bin/ploy', 'do', 'foo', 'something'])
         LogMock.error.assert_called_with('No fabfile declared.')
 
-    def testCallWithExistingInstance(self):
+    def testCallWithExistingInstance(self, monkeypatch):
         import ploy_fabric
         import ploy.tests.dummy_plugin
         self.ctrl.plugins = {
@@ -70,11 +70,18 @@ class TestDoCommand:
             'fabfile = %s' % fabfile]))
         with open(fabfile, 'w') as f:
             f.write('\n'.join([
+                'from fabric.api import run',
                 'def something():',
-                '    print "something"']))
-        from ploy_fabric import fabric_integration
-        # this needs to be done before any other fabric module import
-        fabric_integration.patch()
-        with patch('fabric.main.main') as FabricMainMock:
+                '    run("something")']))
+        open_session_mock = MagicMock()
+        open_session_mock().recv.return_value = ''
+        open_session_mock().recv_stderr.return_value = ''
+        open_session_mock().exit_status_ready.return_value = True
+        open_session_mock().recv_exit_status.return_value = 0
+        monkeypatch.setattr(
+            ploy.tests.dummy_plugin.MockTransport, 'open_session',
+            open_session_mock, raising=False)
+        with pytest.raises(SystemExit) as e:
             self.ctrl(['./bin/ploy', 'do', 'foo', 'something'])
-        FabricMainMock.assert_called_with()
+        assert open_session_mock().recv.called is True
+        assert e.value.code == 0
