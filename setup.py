@@ -15,7 +15,7 @@ install_requires = [
 
 
 try:
-    import fabric
+    import fabric  # noqa
 except ImportError:
     install_requires.append('Fabric>=1.3.0,!=1.8.3')
 

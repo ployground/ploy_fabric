@@ -1,41 +1,35 @@
 from mock import patch
 from ploy import Controller
-from unittest2 import TestCase
 import os
-import shutil
-import tempfile
+import pytest
 
 
-class DoCommandTests(TestCase):
-    def setUp(self):
-        self.directory = tempfile.mkdtemp()
-        self.ctrl = Controller(self.directory)
-
-    def tearDown(self):
-        shutil.rmtree(self.directory)
-        del self.directory
-
-    def _write_config(self, content):
-        with open(os.path.join(self.directory, 'ploy.conf'), 'w') as f:
-            f.write(content)
+class TestDoCommand:
+    @pytest.fixture(autouse=True)
+    def setup_ctrl(self, ployconf, tempdir):
+        self.directory = ployconf.directory
+        self.tempdir = tempdir
+        self.ctrl = Controller(ployconf.directory)
+        self.ctrl.configfile = ployconf.path
+        self._write_config = ployconf.fill
 
     def testCallWithNoArguments(self):
         self._write_config('')
         with patch('sys.stderr') as StdErrMock:
-            with self.assertRaises(SystemExit):
+            with pytest.raises(SystemExit):
                 self.ctrl(['./bin/ploy', 'do'])
         output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
-        self.assertIn('usage: ploy do', output)
-        self.assertIn('too few arguments', output)
+        assert 'usage: ploy do' in output
+        assert 'too few arguments' in output
 
     def testCallWithNonExistingInstance(self):
         self._write_config('')
         with patch('sys.stderr') as StdErrMock:
-            with self.assertRaises(SystemExit):
+            with pytest.raises(SystemExit):
                 self.ctrl(['./bin/ploy', 'do', 'foo'])
         output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
-        self.assertIn('usage: ploy do', output)
-        self.assertIn("argument instance: invalid choice: 'foo'", output)
+        assert 'usage: ploy do' in output
+        assert "argument instance: invalid choice: 'foo'" in output
 
     def testCallWithExistingInstanceButTooViewArguments(self):
         import ploy_fabric
@@ -46,7 +40,7 @@ class DoCommandTests(TestCase):
         self._write_config('\n'.join([
             '[dummy-instance:foo]']))
         with patch('ploy_fabric.log') as LogMock:
-            with self.assertRaises(SystemExit):
+            with pytest.raises(SystemExit):
                 self.ctrl(['./bin/ploy', 'do', 'foo'])
         LogMock.error.assert_called_with('No fabfile declared.')
 
@@ -59,7 +53,7 @@ class DoCommandTests(TestCase):
         self._write_config('\n'.join([
             '[dummy-instance:foo]']))
         with patch('ploy_fabric.log') as LogMock:
-            with self.assertRaises(SystemExit):
+            with pytest.raises(SystemExit):
                 self.ctrl(['./bin/ploy', 'do', 'foo', 'something'])
         LogMock.error.assert_called_with('No fabfile declared.')
 
