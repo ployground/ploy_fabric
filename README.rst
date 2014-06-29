@@ -4,6 +4,10 @@ Changelog
 1.0b4 - unreleased
 ------------------
 
+* Added ``fab`` command which is just a wrapper for Fabric with all it's options
+  and reworked ``do`` command into a simple version to just run a task.
+  [fschulze]
+
 * Renamed mr.awsome to ploy and mr.awsome.fabric to ploy_fabric.
   [fschulze]
 

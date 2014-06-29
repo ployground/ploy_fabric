@@ -8,38 +8,98 @@ import sys
 log = logging.getLogger('ploy_fabric')
 
 
-class StdFilter(object):
-    def __init__(self, org):
-        self.org = org
-        self.flush = self.org.flush
+notset = object()
 
-    def isatty(self):
-        return False
 
-    def write(self, msg):
-        import fabric.state
-        lines = msg.split('\n')
-        prefix = '[%s] ' % fabric.state.env.host_string
-        for index, line in enumerate(lines):
-            if line.startswith(prefix):
-                lines[index] = line[len(prefix):]
-        self.org.write('\n'.join(lines))
+def get_host_string(instance):
+    return "{user}@{host}".format(
+        user=instance.config.get('user', 'root'),
+        host=instance.id)
+
+
+def get_fabfile(instance):
+    fabfile = instance.config.get('fabfile')
+    if fabfile is None:
+        log.error("No fabfile declared.")
+        sys.exit(1)
+    if not os.path.exists(fabfile):
+        log.error("The fabfile at '%s' is missing." % fabfile)
+        sys.exit(1)
+    return fabfile
 
 
 @contextmanager
-def std_filters():
-    old_stdout = sys.stdout
-    old_stderr = sys.stderr
-    if not isinstance(sys.stdout, StdFilter):
-        sys.stdout = StdFilter(sys.stdout)
-    if not isinstance(sys.stderr, StdFilter):
-        sys.stderr = StdFilter(sys.stderr)
-    yield
-    sys.stdout = old_stdout
-    sys.stderr = old_stderr
+def sys_argv(newargv):
+    orig_sys_argv = sys.argv
+    sys.argv = newargv
+    try:
+        yield
+    finally:
+        sys.argv = orig_sys_argv
 
 
-class FabricDoCmd(object):
+@contextmanager
+def cwd(path):
+    orig_cwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(orig_cwd)
+
+
+@contextmanager
+def fabric_env(ctrl, instance):
+    import fabric.state
+    connections, env = fabric.state.connections, fabric.state.env
+    orig = dict()
+    orig['reject_unknown_hosts'] = env.get('reject_unknown_hosts', notset)
+    env.reject_unknown_hosts = True
+    orig['disable_known_hosts'] = env.get('disable_known_hosts', notset)
+    env.disable_known_hosts = True
+    orig['host_string'] = env.get('host_string', notset)
+    env.host_string = get_host_string(instance)
+    orig['known_hosts'] = env.get('known_hosts', notset)
+    env.known_hosts = ctrl.known_hosts
+    orig['instances'] = env.get('instances', notset)
+    env.instances = ctrl.instances
+    orig['instance'] = env.get('instance', notset)
+    env.instance = instance
+    orig['config_base'] = env.get('config_base', notset)
+    env.config_base = ctrl.config.path
+    try:
+        with cwd(os.path.dirname(get_fabfile(instance))):
+            yield
+    finally:
+        if connections.opened(env.host_string):  # pragma: no cover
+            connections[env.host_string].close()
+        for key, value in orig.items():
+            if value is notset:
+                if key in env:
+                    del env[key]
+            else:
+                env[key] = value
+
+
+@contextmanager
+def fabric_integration(ctrl, instance):
+    from ploy_fabric import _fabric_integration
+    # this needs to be done before any other fabric module import
+    _fabric_integration.patch()
+
+    orig_instances = _fabric_integration.instances
+    orig_log = _fabric_integration.log
+    _fabric_integration.instances = ctrl.instances
+    _fabric_integration.log = log
+    try:
+        with fabric_env(ctrl, instance):
+            yield
+    finally:
+        _fabric_integration.instances = orig_instances
+        _fabric_integration.log = orig_log
+
+
+class FabricCmd(object):
     """Run Fabric"""
 
     def __init__(self, ctrl):
@@ -53,108 +113,107 @@ class FabricDoCmd(object):
             add_help=False,
         )
         instances = self.ctrl.get_instances(command='init_ssh_key')
-        parser.add_argument("server", nargs=1,
+        parser.add_argument("instance", nargs=1,
                             metavar="instance",
-                            help="Name of the instance or server from the config.",
+                            help="Name of the instance from the config.",
                             choices=list(instances))
-        parser.add_argument("...", nargs=argparse.REMAINDER,
+        parser.add_argument("fabric_opts",
+                            metavar="...", nargs=argparse.REMAINDER,
                             help="Fabric options")
-        parser.parse_args(argv[:1])
-        old_sys_argv = sys.argv
-        old_cwd = os.getcwd()
+        args = parser.parse_args(argv)
 
-        from ploy_fabric import fabric_integration
-        # this needs to be done before any other fabric module import
-        fabric_integration.patch()
+        instance = instances[args.instance[0]]
+        with fabric_integration(self.ctrl, instance):
+            from fabric.main import main
+            from fabric.state import env
+            fabfile = get_fabfile(instance)
+            newargv = ['fab', '-H', env.host_string, '-r', '-D', '-f', fabfile]
+            if args.fabric_opts:
+                newargv = newargv + args.fabric_opts
+            with sys_argv(newargv):
+                main()
 
-        import fabric.state
-        import fabric.main
 
-        hoststr = None
-        try:
-            fabric_integration.instances = self.ctrl.instances
-            fabric_integration.log = log
-            hoststr = argv[0]
-            server = instances[hoststr]
-            if 'user' in server.config:
-                hoststr = '%s@%s' % (server.config['user'], hoststr)
-            # prepare the connection
-            fabric.state.env.reject_unknown_hosts = True
-            fabric.state.env.disable_known_hosts = True
+class DoCmd(object):
+    """Run a specific Fabric task"""
 
-            fabfile = server.config.get('fabfile')
-            if fabfile is None:
-                log.error("No fabfile declared.")
-                sys.exit(1)
-            newargv = ['fab', '-H', hoststr, '-r', '-D']
-            if fabfile is not None:
-                newargv = newargv + ['-f', fabfile]
-            sys.argv = newargv + argv[1:]
+    def __init__(self, ctrl):
+        self.ctrl = ctrl
 
-            # setup environment
-            os.chdir(os.path.dirname(fabfile))
-            fabric.state.env.servers = self.ctrl.instances
-            fabric.state.env.server = server
-            known_hosts = self.ctrl.known_hosts
-            fabric.state.env.known_hosts = known_hosts
-            fabric.state.env.config_base = self.ctrl.config.path
+    def get_completion(self):
+        return sorted(self.ctrl.get_instances(command='do'))
 
-            with std_filters():
-                fabric.main.main()
-        finally:
-            if fabric.state.connections.opened(hoststr):  # pragma: no cover
-                fabric.state.connections[hoststr].close()
-            sys.argv = old_sys_argv
-            os.chdir(old_cwd)
+    def __call__(self, argv, help):
+        """Run a fabric task on an instance"""
+        parser = argparse.ArgumentParser(
+            prog="%s do" % self.ctrl.progname,
+            description=help)
+        instances = self.ctrl.get_instances(command='do')
+        parser.add_argument("instance", nargs=1,
+                            metavar="instance",
+                            help="Name of the instance from the config.",
+                            choices=list(instances))
+        group = parser.add_mutually_exclusive_group(required=True)
+        group.add_argument("task", nargs='?',
+                           help="The task to run.")
+        group.add_argument("-l", "--list",
+                           action='store_true',
+                           help="List available tasks.")
+        parser.add_argument("task_args",
+                            metavar="arg|key=value", nargs="*",
+                            help="Arguments for the task.")
+        args = parser.parse_args(argv)
+
+        instance = instances[args.instance[0]]
+        if args.list:
+            print "Available commands:"
+            print
+            with callables(instance) as tasks:
+                for name in sorted(tasks):
+                    print "    %s" % name
+                    return
+        task_args = []
+        task_kwargs = {}
+        for arg in args.task_args:
+            parts = arg.split('=', 1)
+            if len(parts) == 1:
+                task_args.append(arg)
+            else:
+                task_kwargs[parts[0]] = parts[1]
+        instance.do(args.task, *task_args, **task_kwargs)
+
+
+@contextmanager
+def callables(instance):
+    with fabric_integration(instance.master.ctrl, instance):
+        from fabric.main import extract_tasks
+        from fabric.state import env
+
+        fabfile = get_fabfile(instance)
+        with open(fabfile) as f:
+            source = f.read()
+        code = compile(source, fabfile, 'exec')
+        g = {'__file__': fabfile}
+        exec code in g, g
+        new_style, classic, default = extract_tasks(g.items())
+        callables = new_style if env.new_style_tasks else classic
+        yield callables
 
 
 def do(self, task, *args, **kwargs):
-    from ploy_fabric import fabric_integration
-    # this needs to be done before any other fabric module import
-    fabric_integration.patch()
-    orig_instances = fabric_integration.instances
-    orig_log = fabric_integration.log
-    fabric_integration.instances = self.master.ctrl.instances
-    fabric_integration.log = log
-
-    from fabric.main import extract_tasks
-    from fabric.state import env
-    env.reject_unknown_hosts = True
-    env.disable_known_hosts = True
-    env.known_hosts = self.master.known_hosts
-    env.server = self
-
-    fabfile = self.config['fabfile']
-    with open(fabfile) as f:
-        source = f.read()
-    code = compile(source, fabfile, 'exec')
-    g = {
-        '__file__': fabfile}
-    exec code in g, g
-    new_style, classic, default = extract_tasks(g.items())
-    callables = new_style if env.new_style_tasks else classic
-    orig_host_string = env.host_string
-    env.host_string = "{}@{}".format(
-        self.config.get('user', 'root'),
-        self.id)
-    with std_filters():
-        result = callables[task](*args, **kwargs)
-    fabric_integration.instances = orig_instances
-    fabric_integration.log = orig_log
-    del env['reject_unknown_hosts']
-    del env['disable_known_hosts']
-    env.host_string = orig_host_string
-    return result
+    with callables(self) as tasks:
+        return tasks[task](*args, **kwargs)
 
 
 def augment_instance(instance):
-    if not hasattr(instance, 'do'):
+    if hasattr(instance, 'init_ssh_key') and not hasattr(instance, 'do'):
         instance.do = do.__get__(instance, instance.__class__)
 
 
 def get_commands(ctrl):
     return [
-        ('do', FabricDoCmd(ctrl))]
+        ('fab', FabricCmd(ctrl)),
+        ('do', DoCmd(ctrl))]
 
 
 def get_massagers():
