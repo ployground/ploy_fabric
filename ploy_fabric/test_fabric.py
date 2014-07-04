@@ -176,7 +176,7 @@ class TestDoCommand:
                 '    print env.servers',
                 '    print env.server']))
         self.ctrl(['./bin/ploy', 'do', 'foo', 'something'])
-        servers_msg, server_msg = [x.splitlines() for x in caplog_messages(caplog)]
+        servers_msg, server_msg = [x.splitlines() for x in caplog_messages(caplog, level=logging.WARN)]
         assert servers_msg[0] == "Use of deprecated variable name 'servers', use 'instances' instead."
         parts = servers_msg[1].rsplit(':', 1)
         assert parts[0].endswith('etc/fabfile.py')
