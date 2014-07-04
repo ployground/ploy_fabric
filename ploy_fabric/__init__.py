@@ -15,7 +15,7 @@ notset = object()
 def get_host_string(instance):
     return "{user}@{host}".format(
         user=instance.config.get('user', 'root'),
-        host=instance.id)
+        host=instance.uid)
 
 
 def get_fabfile(instance):

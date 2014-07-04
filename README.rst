@@ -4,6 +4,9 @@ Changelog
 1.0b4 - unreleased
 ------------------
 
+* Use unique id for host string to avoid issues.
+  [fschulze]
+
 * Added ``fab`` command which is just a wrapper for Fabric with all it's options
   and reworked ``do`` command into a simple version to just run a task.
   [fschulze]
