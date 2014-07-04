@@ -1,7 +1,15 @@
 from mock import MagicMock, patch
 from ploy import Controller
+import logging
 import os
 import pytest
+
+
+def caplog_messages(caplog, level=logging.INFO):
+    return [
+        x.message
+        for x in caplog.records()
+        if x.levelno >= level]
 
 
 class TestDoCommand:
@@ -149,6 +157,36 @@ class TestDoCommand:
             self.ctrl(['./bin/ploy', 'do', 'foo', 'something', 'fooarg=bararg'])
         output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
         assert 'bararg' in output
+
+    def testDeprecation(self, caplog):
+        import ploy_fabric
+        import ploy.tests.dummy_plugin
+        self.ctrl.plugins = {
+            'dummy': ploy.tests.dummy_plugin.plugin,
+            'fabric': ploy_fabric.plugin}
+        fabfile = os.path.join(self.directory, 'fabfile.py')
+        self._write_config('\n'.join([
+            '[dummy-instance:foo]',
+            'host = localhost',
+            'fabfile = %s' % fabfile]))
+        with open(fabfile, 'w') as f:
+            f.write('\n'.join([
+                'from fabric.api import env',
+                'def something(fooarg="foo"):',
+                '    print env.servers',
+                '    print env.server']))
+        self.ctrl(['./bin/ploy', 'do', 'foo', 'something'])
+        servers_msg, server_msg = [x.splitlines() for x in caplog_messages(caplog)]
+        assert servers_msg[0] == "Use of deprecated variable name 'servers', use 'instances' instead."
+        parts = servers_msg[1].rsplit(':', 1)
+        assert parts[0].endswith('etc/fabfile.py')
+        assert parts[1] == '3'
+        assert servers_msg[2] == "    print env.servers"
+        assert server_msg[0] == "Use of deprecated variable name 'server', use 'instance' instead."
+        parts = server_msg[1].rsplit(':', 1)
+        assert parts[0].endswith('etc/fabfile.py')
+        assert parts[1] == '4'
+        assert server_msg[2] == "    print env.server"
 
 
 class TestFabCommand:

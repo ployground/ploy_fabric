@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 import argparse
+import inspect
 import logging
 import os
 import sys
@@ -48,6 +49,27 @@ def cwd(path):
         os.chdir(orig_cwd)
 
 
+class DeprecationProxy:
+    def __init__(self, wrapped, name, new_name):
+        self.wrapped = wrapped
+        self.name = name
+        self.new_name = new_name
+        self.seen = set()
+
+    def __getattr__(self, name):
+        caller_frame = inspect.currentframe().f_back
+        info = inspect.getframeinfo(caller_frame)
+        orig_name = self.__dict__['name']
+        new_name = self.__dict__['new_name']
+        seen = self.__dict__['seen']
+        key = (info.filename, info.lineno)
+        if key not in seen:
+            seen.add(key)
+            log.warning("Use of deprecated variable name '%s', use '%s' instead.\n%s:%s\n%s" % (
+                orig_name, new_name, info.filename, info.lineno, ''.join(info.code_context)))
+        return getattr(self.__dict__['wrapped'], name)
+
+
 @contextmanager
 def fabric_env(ctrl, instance):
     import fabric.state
@@ -65,6 +87,10 @@ def fabric_env(ctrl, instance):
     env.instances = ctrl.instances
     orig['instance'] = env.get('instance', notset)
     env.instance = instance
+    orig['servers'] = env.get('servers', notset)
+    env.servers = DeprecationProxy(ctrl.instances, 'servers', 'instances')
+    orig['server'] = env.get('server', notset)
+    env.server = DeprecationProxy(instance, 'server', 'instance')
     orig['config_base'] = env.get('config_base', notset)
     env.config_base = ctrl.config.path
     try:
