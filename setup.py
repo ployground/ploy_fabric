@@ -11,7 +11,7 @@ version = "1.0b6"
 
 install_requires = [
     'setuptools',
-    'ploy >= 1.0rc9']
+    'ploy >= 1.0rc13']
 
 
 try:
