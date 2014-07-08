@@ -4,6 +4,8 @@ Changelog
 1.0b5 - Unreleased
 ------------------
 
+* Fix task listing for ``do`` command.
+  [fschulze]
 
 
 1.0b4 - 2014-07-04

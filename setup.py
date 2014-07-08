@@ -22,7 +22,7 @@ except ImportError:
 
 setup(
     version=version,
-    description="A plugin for ploy providing integration with Fabric.",
+    description="Plugin to integrate Fabric with ploy.",
     long_description=README + "\n\n",
     name="ploy_fabric",
     author='Florian Schulze',

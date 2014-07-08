@@ -197,7 +197,7 @@ class DoCmd(object):
             with callables(instance) as tasks:
                 for name in sorted(tasks):
                     print "    %s" % name
-                    return
+                return
         task_args = []
         task_kwargs = {}
         for arg in args.task_args:

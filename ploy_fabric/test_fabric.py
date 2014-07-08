@@ -109,12 +109,15 @@ class TestDoCommand:
         with open(fabfile, 'w') as f:
             f.write('\n'.join([
                 'def something():',
+                '    pass',
+                'def something_else():',
                 '    pass']))
         with patch('sys.stdout') as StdOutMock:
             self.ctrl(['./bin/ploy', 'do', 'foo', '-l'])
         output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
         assert 'Available commands' in output
         assert 'something' in output
+        assert 'something_else' in output
 
     def testCallWithTaskArg(self):
         import ploy_fabric
@@ -287,9 +290,12 @@ class TestFabCommand:
         with open(fabfile, 'w') as f:
             f.write('\n'.join([
                 'def something():',
+                '    pass',
+                'def something_else():',
                 '    pass']))
         with patch('sys.stdout') as StdOutMock:
             self.ctrl(['./bin/ploy', 'do', 'foo', '-l'])
         output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
         assert 'Available commands' in output
         assert 'something' in output
+        assert 'something_else' in output
