@@ -1,8 +1,11 @@
 Changelog
 =========
 
-1.0b5 - Unreleased
+1.0b5 - 2014-07-08
 ------------------
+
+* Packaging and test fixes.
+  [fschulze]
 
 * Fix task listing for ``do`` command.
   [fschulze]
