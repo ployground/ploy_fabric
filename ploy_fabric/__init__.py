@@ -134,7 +134,7 @@ class FabricCmd(object):
     def __call__(self, argv, help):
         """Do stuff on the cluster (using fabric)"""
         parser = argparse.ArgumentParser(
-            prog="%s do" % self.ctrl.progname,
+            prog="%s fab" % self.ctrl.progname,
             description=help,
             add_help=False,
         )
