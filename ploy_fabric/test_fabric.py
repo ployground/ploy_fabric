@@ -26,9 +26,9 @@ def ctrl(ployconf):
 @pytest.yield_fixture
 def fabfile(tempdir):
     import sys
-    sys.modules.pop('fabfile', None)
-    yield tempdir['etc/fabfile.py']
-    sys.modules.pop('fabfile', None)
+    sys.modules.pop('foo', None)
+    yield tempdir['etc/foo.py']
+    sys.modules.pop('foo', None)
 
 
 @pytest.mark.parametrize("cmd_name", ['fab', 'do'])
@@ -73,7 +73,7 @@ class TestDoCommand:
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
-            'fabfile = fabfile.py'])
+            'fabfile = %s' % fabfile.path])
         fabfile.fill([
             'from fabric.api import run',
             'def something():',
@@ -87,7 +87,7 @@ class TestDoCommand:
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
-            'fabfile = fabfile.py'])
+            'fabfile = %s' % fabfile.path])
         fabfile.fill([
             'from fabric.api import run',
             'def something(fooarg):',
@@ -101,7 +101,7 @@ class TestDoCommand:
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
-            'fabfile = fabfile.py'])
+            'fabfile = %s' % fabfile.path])
         fabfile.fill([
             'from fabric.api import run',
             'def something(fooarg="foo"):',
@@ -115,7 +115,7 @@ class TestDoCommand:
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
-            'fabfile = fabfile.py'])
+            'fabfile = %s' % fabfile.path])
         fabfile.fill([
             'from fabric.api import env',
             'def something(fooarg="foo"):',
@@ -125,12 +125,12 @@ class TestDoCommand:
         servers_msg, server_msg = [x.splitlines() for x in caplog_messages(caplog, level=logging.WARN)]
         assert servers_msg[0] == "Use of deprecated variable name 'servers', use 'instances' instead."
         parts = servers_msg[1].rsplit(':', 1)
-        assert parts[0].endswith('etc/fabfile.py')
+        assert parts[0].endswith('etc/foo.py')
         assert parts[1] == '3'
         assert servers_msg[2] == "    print env.servers"
         assert server_msg[0] == "Use of deprecated variable name 'server', use 'instance' instead."
         parts = server_msg[1].rsplit(':', 1)
-        assert parts[0].endswith('etc/fabfile.py')
+        assert parts[0].endswith('etc/foo.py')
         assert parts[1] == '4'
         assert server_msg[2] == "    print env.server"
 
@@ -156,7 +156,7 @@ class TestFabCommand:
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
-            'fabfile = fabfile.py'])
+            'fabfile = %s' % fabfile.path])
         fabfile.fill([
             'from fabric.api import run',
             'def something():',
@@ -193,7 +193,7 @@ def test_list_tasks(cmd, ctrl, fabfile, ployconf):
     ployconf.fill([
         '[dummy-instance:foo]',
         'host = localhost',
-        'fabfile = fabfile.py'])
+        'fabfile = %s' % fabfile.path])
     fabfile.fill([
         'def something():',
         '    pass',
@@ -211,3 +211,32 @@ def test_list_tasks(cmd, ctrl, fabfile, ployconf):
     assert 'Available commands' in output
     assert 'something' in output
     assert 'something_else' in output
+
+
+def test_env_overwrite_from_config(caplog, cmd, ctrl, fabfile, ployconf):
+    ployconf.fill([
+        '[dummy-instance:foo]',
+        'host = localhost',
+        'fabfile = %s' % fabfile.path,
+        'fabric-ham = egg',
+        'fabric-shell = fooshell'])
+    fabfile.fill([
+        'from fabric.api import env',
+        'def something():',
+        '    print "ham", env.ham',
+        '    print "shell", env.shell'])
+    with patch('sys.stdout') as StdOutMock:
+        StdOutMock.isatty.return_value = False
+        try:
+            ctrl(['./bin/ploy', cmd, 'foo', 'something'])
+        except SystemExit as e:
+            assert e.code == 0
+    output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
+    assert "ham egg\n" in output
+    assert "shell fooshell\n" in output
+    if cmd == 'fab':
+        msgs = [x for x in caplog_messages(caplog, level=logging.WARN)]
+        assert msgs == [
+            'Removed fab command line option -D/--disable-known-hosts because of overwrite for instance dummy-instance:foo.',
+            'Removed fab command line option -r/--reject-unknown-hosts because of overwrite for instance dummy-instance:foo.',
+            'Removed fab command line option -s/--shell because of overwrite for instance dummy-instance:foo.']

@@ -70,29 +70,42 @@ class DeprecationProxy:
         return getattr(self.__dict__['wrapped'], name)
 
 
+def get_fabric_env_settings(ctrl, instance):
+    env = dict(
+        reject_unknown_hosts=True,
+        disable_known_hosts=True,
+        host_string=get_host_string(instance),
+        known_hosts=ctrl.known_hosts,
+        instances=ctrl.instances,
+        instance=instance,
+        config_base=ctrl.config.path)
+    for k, v in instance.config.items():
+        if not k.startswith('fabric-'):
+            continue
+        env[k[7:]] = v
+    return env
+
+
 @contextmanager
-def fabric_env(ctrl, instance):
+def fabric_env(ctrl, instance, fabcmd=False):
     import fabric.state
-    connections, env = fabric.state.connections, fabric.state.env
+    connections = fabric.state.connections
+    env, env_options = fabric.state.env, fabric.state.env_options
     orig = dict()
-    orig['reject_unknown_hosts'] = env.get('reject_unknown_hosts', notset)
-    env.reject_unknown_hosts = True
-    orig['disable_known_hosts'] = env.get('disable_known_hosts', notset)
-    env.disable_known_hosts = True
-    orig['host_string'] = env.get('host_string', notset)
-    env.host_string = get_host_string(instance)
-    orig['known_hosts'] = env.get('known_hosts', notset)
-    env.known_hosts = ctrl.known_hosts
-    orig['instances'] = env.get('instances', notset)
-    env.instances = ctrl.instances
-    orig['instance'] = env.get('instance', notset)
-    env.instance = instance
-    orig['servers'] = env.get('servers', notset)
-    env.servers = DeprecationProxy(ctrl.instances, 'servers', 'instances')
-    orig['server'] = env.get('server', notset)
-    env.server = DeprecationProxy(instance, 'server', 'instance')
-    orig['config_base'] = env.get('config_base', notset)
-    env.config_base = ctrl.config.path
+    orig_options = list(env_options)
+    for k, v in get_fabric_env_settings(ctrl, instance).items():
+        orig[k] = env.get(k, notset)
+        env[k] = v
+    new_options = []
+    for option in env_options:
+        if option.dest not in orig:
+            new_options.append(option)
+        elif fabcmd:
+            log.warn("Removed fab command line option %s because of overwrite for instance %s." % (option, instance.config_id))
+    env_options[:] = new_options
+    for new_k, old_k in (('instances', 'servers'), ('instance', 'server')):
+        orig[old_k] = env.get(old_k, notset)
+        env[old_k] = DeprecationProxy(orig[new_k], old_k, new_k)
     try:
         with cwd(os.path.dirname(get_fabfile(instance))):
             yield
@@ -105,10 +118,11 @@ def fabric_env(ctrl, instance):
                     del env[key]
             else:
                 env[key] = value
+        env_options[:] = orig_options
 
 
 @contextmanager
-def fabric_integration(ctrl, instance):
+def fabric_integration(ctrl, instance, fabcmd=False):
     from ploy_fabric import _fabric_integration
     # this needs to be done before any other fabric module import
     _fabric_integration.patch()
@@ -118,7 +132,7 @@ def fabric_integration(ctrl, instance):
     _fabric_integration.instances = ctrl.instances
     _fabric_integration.log = log
     try:
-        with fabric_env(ctrl, instance):
+        with fabric_env(ctrl, instance, fabcmd=fabcmd):
             yield
     finally:
         _fabric_integration.instances = orig_instances
@@ -149,11 +163,10 @@ class FabricCmd(object):
         args = parser.parse_args(argv)
 
         instance = instances[args.instance[0]]
-        with fabric_integration(self.ctrl, instance):
+        with fabric_integration(self.ctrl, instance, fabcmd=True):
             from fabric.main import main
-            from fabric.state import env
             fabfile = get_fabfile(instance)
-            newargv = ['fab', '-H', env.host_string, '-r', '-D', '-f', fabfile]
+            newargv = ['fab', '-f', fabfile]
             if args.fabric_opts:
                 newargv = newargv + args.fabric_opts
             with sys_argv(newargv):

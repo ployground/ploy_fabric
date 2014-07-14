@@ -4,6 +4,9 @@ Changelog
 1.0b6 - Unreleased
 ------------------
 
+* Allow overwriting of fabric env from config with options prefixed by
+  ``fabric-``, i.e. ``fabric-shell = /bin/sh -c``.
+  [fschulze]
 
 
 1.0b5 - 2014-07-08
