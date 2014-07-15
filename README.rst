@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.0b6 - Unreleased
+1.0b6 - 2014-07-15
 ------------------
 
 * Allow overwriting of fabric env from config with options prefixed by
