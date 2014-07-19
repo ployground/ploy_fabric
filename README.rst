@@ -78,6 +78,11 @@ Any option of the instance starting with ``fabric-`` is stripped of the ``fabric
 Changelog
 =========
 
+1.0.1 - Unreleased
+------------------
+
+
+
 1.0.0 - 2014-07-19
 ------------------
 
