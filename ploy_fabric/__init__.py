@@ -18,6 +18,15 @@ def get_host_string(instance):
         host=instance.uid)
 
 
+def has_fabfile(instance):
+    fabfile = instance.config.get('fabfile')
+    if fabfile is None:
+        return False
+    if not os.path.exists(fabfile):
+        return False
+    return True
+
+
 def get_fabfile(instance):
     fabfile = instance.config.get('fabfile')
     if fabfile is None:
@@ -180,18 +189,21 @@ class DoCmd(object):
         self.ctrl = ctrl
 
     def get_completion(self):
-        return sorted(self.ctrl.get_instances(command='do'))
+        instances = set()
+        for instance in self.ctrl.get_instances(command='do'):
+            if self.ctrl.instances[instance].has_fabfile():
+                instances.add(instance)
+        return sorted(instances)
 
     def __call__(self, argv, help):
         """Run a fabric task on an instance"""
         parser = argparse.ArgumentParser(
             prog="%s do" % self.ctrl.progname,
             description=help)
-        instances = self.ctrl.get_instances(command='do')
         parser.add_argument("instance", nargs=1,
                             metavar="instance",
                             help="Name of the instance from the config.",
-                            choices=list(instances))
+                            choices=self.get_completion())
         group = parser.add_mutually_exclusive_group(required=True)
         group.add_argument("task", nargs='?',
                            help="The task to run.")
@@ -203,7 +215,7 @@ class DoCmd(object):
                             help="Arguments for the task.")
         args = parser.parse_args(argv)
 
-        instance = instances[args.instance[0]]
+        instance = self.ctrl.instances[args.instance[0]]
         if args.list:
             print "Available commands:"
             print
@@ -245,7 +257,11 @@ def do(self, task, *args, **kwargs):
 
 
 def augment_instance(instance):
-    if hasattr(instance, 'init_ssh_key') and not hasattr(instance, 'do'):
+    if not hasattr(instance, 'init_ssh_key'):
+        return
+    if not hasattr(instance, 'has_fabfile'):
+        instance.has_fabfile = has_fabfile.__get__(instance, instance.__class__)
+    if not hasattr(instance, 'do'):
         instance.do = do.__get__(instance, instance.__class__)
 
 

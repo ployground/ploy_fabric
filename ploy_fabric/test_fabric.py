@@ -52,9 +52,15 @@ def open_session_mock(monkeypatch):
 
 
 class TestDoCommand:
-    def testCallWithExistingInstanceButTooViewArguments(self, ctrl, ployconf):
+    def testCallWithExistingInstanceButTooViewArguments(self, ctrl, fabfile, ployconf):
         ployconf.fill([
-            '[dummy-instance:foo]'])
+            '[dummy-instance:foo]',
+            'host = localhost',
+            'fabfile = %s' % fabfile.path])
+        fabfile.fill([
+            'from fabric.api import run',
+            'def something():',
+            '    run("something")'])
         with patch('sys.stderr') as StdErrMock:
             with pytest.raises(SystemExit):
                 ctrl(['./bin/ploy', 'do', 'foo'])
@@ -64,10 +70,11 @@ class TestDoCommand:
     def testCallWithMissingFabfileDeclaration(self, ctrl, ployconf):
         ployconf.fill([
             '[dummy-instance:foo]'])
-        with patch('ploy_fabric.log') as LogMock:
+        with patch('sys.stderr') as StdErrMock:
             with pytest.raises(SystemExit):
                 ctrl(['./bin/ploy', 'do', 'foo', 'something'])
-        LogMock.error.assert_called_with('No fabfile declared.')
+        output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
+        assert "invalid choice: 'foo' (choose from )" in output
 
     def testCallWithExistingInstance(self, ctrl, fabfile, open_session_mock, ployconf):
         ployconf.fill([
