@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from functools import wraps
 import argparse
 import inspect
 import logging
@@ -12,10 +13,32 @@ log = logging.getLogger('ploy_fabric')
 notset = object()
 
 
-def get_host_string(instance):
+def get_host_string(instance, user=None):
     return "{user}@{host}".format(
-        user=instance.config.get('user', 'root'),
+        user=instance.config.get('user', user or 'root'),
         host=instance.uid)
+
+
+class context:
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.get('user')
+        if args:
+            self(args)
+
+    def __call__(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            import fabric.state
+            with fabric.state.env.instance.fabric(user=self.user):
+                return func(*args, **kwargs)
+        return wrapper
+
+
+@contextmanager
+def instance_context(instance, user=None):
+    with fabric_env(instance.master.ctrl, instance) as env:
+        env.host_string = get_host_string(instance, user=user)
+        yield
 
 
 def has_fabfile(instance):
@@ -269,6 +292,8 @@ def do(self, task, *args, **kwargs):
 def augment_instance(instance):
     if not hasattr(instance, 'init_ssh_key'):
         return
+    if not hasattr(instance, 'fabric'):
+        instance.fabric = instance_context.__get__(instance, instance.__class__)
     if not hasattr(instance, 'has_fabfile'):
         instance.has_fabfile = has_fabfile.__get__(instance, instance.__class__)
     if not hasattr(instance, 'do'):

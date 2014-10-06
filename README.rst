@@ -45,6 +45,53 @@ Instance methods
 For the Python side, each instance gains the ``do(task, *args, **kwargs)`` method.
 The ``task`` argument is the name of a task from the Fabric script which should be run. The remaining arguments are passed on to that task.
 
+Another helper added to each instance is a context manager accessible via the ``fabric`` attribute on instances.
+With that you can switch to a new ssh connection with a different user in your Fabric tasks:
+
+.. code-block:: python
+
+    from fabric.api import env, run
+
+
+    def sometask():
+        run("whoami")  # prints the default user (root)
+        with env.instance.fabric(user='foo'):
+          run("whoami")  # prints 'foo' if the connection worked
+        run("whoami")  # prints the default user (root)
+
+All changes to the Fabric environment are reverted when the context manager exits.
+
+Fabric task decorator
+=====================
+
+With ``ploy_fabric.context`` you can decorate a task to use a specific user with a separate connection.
+All changes to the Fabric environment are reverted when the context manager exits.
+This is useful if you want to run a task from inside another task.
+
+.. code-block:: python
+
+    from fabric.api import env, run
+    from ploy_fabric import context
+
+
+    @context  # always run with the default user
+    def sometask():
+        run("whoami")  # prints the default user (root)
+
+
+    @context(user=None)  # always run with the default user (alternate syntax)
+    def someothertask():
+        env.forward_agent = True
+        run("whoami")  # prints the default user (root)
+
+
+    @context(user='foo')  # always run as foo user
+    def anothertask():
+        env.forward_agent = False
+        run("whoami")  # prints the default user (user)
+        someothertask()
+        assert env.forward_agent == False
+
 
 Fabric environment
 ==================
@@ -82,6 +129,9 @@ Changelog
 ------------------
 
 * Close all newly opened connections after a Fabric call.
+  [fschulze]
+
+* Add context manager and decorator to easily switch fabric connections.
   [fschulze]
 
 
