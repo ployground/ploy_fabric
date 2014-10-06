@@ -19,8 +19,8 @@ class HostConnectionCache(object):
     def keys(self):
         return self._cache.keys()
 
-    def opened(self, key):
-        return key in self._cache
+    def __iter__(self):
+        return iter(self.keys())
 
     def __delitem__(self, key):
         self._cache[key].close()

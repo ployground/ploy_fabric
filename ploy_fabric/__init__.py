@@ -98,7 +98,6 @@ def get_fabric_env_settings(ctrl, instance):
 @contextmanager
 def fabric_env(ctrl, instance, fabcmd=False):
     import fabric.state
-    connections = fabric.state.connections
     env, env_options = fabric.state.env, fabric.state.env_options
     orig = dict()
     orig_options = list(env_options)
@@ -116,11 +115,8 @@ def fabric_env(ctrl, instance, fabcmd=False):
         orig[old_k] = env.get(old_k, notset)
         env[old_k] = DeprecationProxy(orig[new_k], old_k, new_k)
     try:
-        with cwd(os.path.dirname(get_fabfile(instance))):
-            yield
+        yield env
     finally:
-        if connections.opened(env.host_string):  # pragma: no cover
-            connections[env.host_string].close()
         for key, value in orig.items():
             if value is notset:
                 if key in env:
@@ -128,6 +124,19 @@ def fabric_env(ctrl, instance, fabcmd=False):
             else:
                 env[key] = value
         env_options[:] = orig_options
+
+
+@contextmanager
+def fabric_connections(ctrl, instance, fabcmd=False):
+    import fabric.state
+    original_connections = set(fabric.state.connections)
+    try:
+        with fabric_env(ctrl, instance, fabcmd=fabcmd):
+            yield
+    finally:
+        for connection in set(fabric.state.connections) - original_connections:
+            log.debug("Closing connection to '%s' after Fabric call." % connection)
+            del fabric.state.connections[connection]
 
 
 @contextmanager
@@ -141,8 +150,9 @@ def fabric_integration(ctrl, instance, fabcmd=False):
     _fabric_integration.instances = ctrl.instances
     _fabric_integration.log = log
     try:
-        with fabric_env(ctrl, instance, fabcmd=fabcmd):
-            yield
+        with cwd(os.path.dirname(get_fabfile(instance))):
+            with fabric_connections(ctrl, instance, fabcmd=fabcmd):
+                yield
     finally:
         _fabric_integration.instances = orig_instances
         _fabric_integration.log = orig_log
