@@ -128,6 +128,9 @@ Changelog
 1.1.0 - Unreleased
 ------------------
 
+* Require Fabric >= 1.4.0 and vastly simplify the necessary patching.
+  [fschulze]
+
 * Close all newly opened connections after a Fabric call.
   [fschulze]
 

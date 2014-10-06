@@ -168,17 +168,9 @@ def fabric_integration(ctrl, instance, fabcmd=False):
     # this needs to be done before any other fabric module import
     _fabric_integration.patch()
 
-    orig_instances = _fabric_integration.instances
-    orig_log = _fabric_integration.log
-    _fabric_integration.instances = ctrl.instances
-    _fabric_integration.log = log
-    try:
-        with cwd(os.path.dirname(get_fabfile(instance))):
-            with fabric_connections(ctrl, instance, fabcmd=fabcmd):
-                yield
-    finally:
-        _fabric_integration.instances = orig_instances
-        _fabric_integration.log = orig_log
+    with cwd(os.path.dirname(get_fabfile(instance))):
+        with fabric_connections(ctrl, instance, fabcmd=fabcmd):
+            yield
 
 
 class FabricCmd(object):
