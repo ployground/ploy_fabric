@@ -4,6 +4,7 @@ import os
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.rst')).read()
+HISTORY = open(os.path.join(here, 'HISTORY.rst')).read()
 
 
 version = "1.1.0dev"
@@ -23,7 +24,7 @@ except ImportError:
 setup(
     version=version,
     description="Plugin to integrate Fabric with ploy.",
-    long_description=README + "\n\n",
+    long_description=README + "\n\n" + HISTORY,
     name="ploy_fabric",
     author='Florian Schulze',
     author_email='florian.schulze@gmx.net',
