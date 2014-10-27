@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.1.0 - Unreleased
+1.1.0 - 2014-10-27
 ------------------
 
 * Require Fabric >= 1.4.0 and vastly simplify the necessary patching.
