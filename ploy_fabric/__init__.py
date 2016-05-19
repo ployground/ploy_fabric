@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from contextlib import contextmanager
 from functools import wraps
 import argparse
@@ -181,6 +182,7 @@ class FabricCmd(object):
 
     def __call__(self, argv, help):
         """Do stuff on the cluster (using fabric)"""
+        from ploy.common import sorted_choices
         parser = argparse.ArgumentParser(
             prog="%s fab" % self.ctrl.progname,
             description=help,
@@ -190,7 +192,8 @@ class FabricCmd(object):
         parser.add_argument("instance", nargs=1,
                             metavar="instance",
                             help="Name of the instance from the config.",
-                            choices=list(instances))
+                            type=str,
+                            choices=sorted_choices(instances))
         parser.add_argument("fabric_opts",
                             metavar="...", nargs=argparse.REMAINDER,
                             help="Fabric options")
@@ -214,11 +217,12 @@ class DoCmd(object):
         self.ctrl = ctrl
 
     def get_completion(self):
+        from ploy.common import sorted_choices
         instances = set()
         for instance in self.ctrl.get_instances(command='do'):
             if self.ctrl.instances[instance].has_fabfile():
                 instances.add(instance)
-        return sorted(instances)
+        return sorted_choices(instances)
 
     def __call__(self, argv, help):
         """Run a fabric task on an instance"""
@@ -228,6 +232,7 @@ class DoCmd(object):
         parser.add_argument("instance", nargs=1,
                             metavar="instance",
                             help="Name of the instance from the config.",
+                            type=str,
                             choices=self.get_completion())
         group = parser.add_mutually_exclusive_group(required=True)
         group.add_argument("task", nargs='?',

@@ -1,4 +1,4 @@
-from mock import MagicMock, patch
+from __future__ import unicode_literals
 from ploy import Controller
 import logging
 import pytest
@@ -38,9 +38,9 @@ def cmd(request):
 
 
 @pytest.fixture
-def open_session_mock(monkeypatch):
+def open_session_mock(mock, monkeypatch):
     import ploy.tests.dummy_plugin
-    open_session_mock = MagicMock()
+    open_session_mock = mock.MagicMock()
     open_session_mock().recv.return_value = ''
     open_session_mock().recv_stderr.return_value = ''
     open_session_mock().exit_status_ready.return_value = True
@@ -52,7 +52,7 @@ def open_session_mock(monkeypatch):
 
 
 class TestDoCommand:
-    def testCallWithExistingInstanceButTooViewArguments(self, ctrl, fabfile, ployconf):
+    def testCallWithExistingInstanceButTooViewArguments(self, ctrl, fabfile, mock, ployconf):
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
@@ -61,16 +61,16 @@ class TestDoCommand:
             'from fabric.api import run',
             'def something():',
             '    run("something")'])
-        with patch('sys.stderr') as StdErrMock:
+        with mock.patch('sys.stderr') as StdErrMock:
             with pytest.raises(SystemExit):
                 ctrl(['./bin/ploy', 'do', 'foo'])
         output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
         assert 'one of the arguments' in output
 
-    def testCallWithMissingFabfileDeclaration(self, ctrl, ployconf):
+    def testCallWithMissingFabfileDeclaration(self, ctrl, mock, ployconf):
         ployconf.fill([
             '[dummy-instance:foo]'])
-        with patch('sys.stderr') as StdErrMock:
+        with mock.patch('sys.stderr') as StdErrMock:
             with pytest.raises(SystemExit):
                 ctrl(['./bin/ploy', 'do', 'foo', 'something'])
         output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
@@ -90,7 +90,7 @@ class TestDoCommand:
         from fabric.state import env
         assert 'instances' not in env
 
-    def testCallWithTaskArg(self, ctrl, fabfile, ployconf):
+    def testCallWithTaskArg(self, ctrl, fabfile, mock, ployconf):
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
@@ -99,12 +99,12 @@ class TestDoCommand:
             'from fabric.api import run',
             'def something(fooarg):',
             '    print fooarg'])
-        with patch('sys.stdout') as StdOutMock:
+        with mock.patch('sys.stdout') as StdOutMock:
             ctrl(['./bin/ploy', 'do', 'foo', 'something', 'bararg'])
         output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
         assert 'bararg' in output
 
-    def testCallWithTaskKwArg(self, ctrl, fabfile, ployconf):
+    def testCallWithTaskKwArg(self, ctrl, fabfile, mock, ployconf):
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
@@ -113,7 +113,7 @@ class TestDoCommand:
             'from fabric.api import run',
             'def something(fooarg="foo"):',
             '    print fooarg'])
-        with patch('sys.stdout') as StdOutMock:
+        with mock.patch('sys.stdout') as StdOutMock:
             ctrl(['./bin/ploy', 'do', 'foo', 'something', 'fooarg=bararg'])
         output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
         assert 'bararg' in output
@@ -143,18 +143,18 @@ class TestDoCommand:
 
 
 class TestFabCommand:
-    def testCallWithExistingInstanceButTooViewArguments(self, ctrl, ployconf):
+    def testCallWithExistingInstanceButTooViewArguments(self, ctrl, mock, ployconf):
         ployconf.fill([
             '[dummy-instance:foo]'])
-        with patch('ploy_fabric.log') as LogMock:
+        with mock.patch('ploy_fabric.log') as LogMock:
             with pytest.raises(SystemExit):
                 ctrl(['./bin/ploy', 'fab', 'foo'])
         LogMock.error.assert_called_with('No fabfile declared.')
 
-    def testCallWithMissingFabfileDeclaration(self, ctrl, ployconf):
+    def testCallWithMissingFabfileDeclaration(self, ctrl, mock, ployconf):
         ployconf.fill([
             '[dummy-instance:foo]'])
-        with patch('ploy_fabric.log') as LogMock:
+        with mock.patch('ploy_fabric.log') as LogMock:
             with pytest.raises(SystemExit):
                 ctrl(['./bin/ploy', 'fab', 'foo', 'something'])
         LogMock.error.assert_called_with('No fabfile declared.')
@@ -176,9 +176,9 @@ class TestFabCommand:
         assert 'instances' not in env
 
 
-def test_call_with_no_arguments(cmd, ctrl, ployconf):
+def test_call_with_no_arguments(cmd, ctrl, mock, ployconf):
     ployconf.fill('')
-    with patch('sys.stderr') as StdErrMock:
+    with mock.patch('sys.stderr') as StdErrMock:
         with pytest.raises(SystemExit):
             ctrl(['./bin/ploy', cmd])
     output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
@@ -186,9 +186,9 @@ def test_call_with_no_arguments(cmd, ctrl, ployconf):
     assert 'too few arguments' in output
 
 
-def test_call_with_non_existing_instance(cmd, ctrl, ployconf):
+def test_call_with_non_existing_instance(cmd, ctrl, mock, ployconf):
     ployconf.fill('')
-    with patch('sys.stderr') as StdErrMock:
+    with mock.patch('sys.stderr') as StdErrMock:
         with pytest.raises(SystemExit):
             ctrl(['./bin/ploy', cmd, 'foo'])
     output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
@@ -196,7 +196,7 @@ def test_call_with_non_existing_instance(cmd, ctrl, ployconf):
     assert "argument instance: invalid choice: 'foo'" in output
 
 
-def test_list_tasks(cmd, ctrl, fabfile, ployconf):
+def test_list_tasks(cmd, ctrl, fabfile, mock, ployconf):
     ployconf.fill([
         '[dummy-instance:foo]',
         'host = localhost',
@@ -208,7 +208,7 @@ def test_list_tasks(cmd, ctrl, fabfile, ployconf):
         'def something_else():',
         '    pass',
         ''])
-    with patch('sys.stdout') as StdOutMock:
+    with mock.patch('sys.stdout') as StdOutMock:
         StdOutMock.isatty.return_value = False
         try:
             ctrl(['./bin/ploy', cmd, 'foo', '-l'])
@@ -220,7 +220,7 @@ def test_list_tasks(cmd, ctrl, fabfile, ployconf):
     assert 'something_else' in output
 
 
-def test_env_overwrite_from_config(caplog, cmd, ctrl, fabfile, ployconf):
+def test_env_overwrite_from_config(caplog, cmd, ctrl, fabfile, mock, ployconf):
     ployconf.fill([
         '[dummy-instance:foo]',
         'host = localhost',
@@ -232,7 +232,7 @@ def test_env_overwrite_from_config(caplog, cmd, ctrl, fabfile, ployconf):
         'def something():',
         '    print "ham", env.ham',
         '    print "shell", env.shell'])
-    with patch('sys.stdout') as StdOutMock:
+    with mock.patch('sys.stdout') as StdOutMock:
         StdOutMock.isatty.return_value = False
         try:
             ctrl(['./bin/ploy', cmd, 'foo', 'something'])
