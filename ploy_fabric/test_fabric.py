@@ -7,7 +7,7 @@ import pytest
 def caplog_messages(caplog, level=logging.INFO):
     return [
         x.message
-        for x in caplog.records()
+        for x in caplog.records
         if x.levelno >= level]
 
 
