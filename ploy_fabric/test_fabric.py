@@ -98,7 +98,7 @@ class TestDoCommand:
         fabfile.fill([
             'from fabric.api import run',
             'def something(fooarg):',
-            '    print fooarg'])
+            '    print(fooarg)'])
         with mock.patch('sys.stdout') as StdOutMock:
             ctrl(['./bin/ploy', 'do', 'foo', 'something', 'bararg'])
         output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
@@ -112,13 +112,13 @@ class TestDoCommand:
         fabfile.fill([
             'from fabric.api import run',
             'def something(fooarg="foo"):',
-            '    print fooarg'])
+            '    print(fooarg)'])
         with mock.patch('sys.stdout') as StdOutMock:
             ctrl(['./bin/ploy', 'do', 'foo', 'something', 'fooarg=bararg'])
         output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
         assert 'bararg' in output
 
-    def testDeprecation(self, caplog, ctrl, fabfile, ployconf):
+    def testObsolete(self, caplog, ctrl, fabfile, ployconf):
         ployconf.fill([
             '[dummy-instance:foo]',
             'host = localhost',
@@ -126,20 +126,17 @@ class TestDoCommand:
         fabfile.fill([
             'from fabric.api import env',
             'def something(fooarg="foo"):',
-            '    print env.servers',
-            '    print env.server'])
-        ctrl(['./bin/ploy', 'do', 'foo', 'something'])
-        servers_msg, server_msg = [x.splitlines() for x in caplog_messages(caplog, level=logging.WARN)]
-        assert servers_msg[0] == "Use of deprecated variable name 'servers', use 'instances' instead."
-        parts = servers_msg[1].rsplit(':', 1)
-        assert parts[0].endswith('etc/foo.py')
-        assert parts[1] == '3'
-        assert servers_msg[2] == "    print env.servers"
-        assert server_msg[0] == "Use of deprecated variable name 'server', use 'instance' instead."
-        parts = server_msg[1].rsplit(':', 1)
-        assert parts[0].endswith('etc/foo.py')
-        assert parts[1] == '4'
-        assert server_msg[2] == "    print env.server"
+            '    print(env.server)'])
+        with pytest.raises(AttributeError) as e:
+            ctrl(['./bin/ploy', 'do', 'foo', 'something'])
+        assert str(e.value) == 'server'
+        fabfile.fill([
+            'from fabric.api import env',
+            'def something(fooarg="foo"):',
+            '    print(env.servers)'])
+        with pytest.raises(AttributeError) as e:
+            ctrl(['./bin/ploy', 'do', 'foo', 'something'])
+        assert str(e.value) == 'servers'
 
 
 class TestFabCommand:
@@ -183,7 +180,7 @@ def test_call_with_no_arguments(cmd, ctrl, mock, ployconf):
             ctrl(['./bin/ploy', cmd])
     output = "".join(x[0][0] for x in StdErrMock.write.call_args_list)
     assert 'usage: ploy %s' % cmd in output
-    assert 'too few arguments' in output
+    assert 'too few arguments' in output or 'the following arguments are required' in output
 
 
 def test_call_with_non_existing_instance(cmd, ctrl, mock, ployconf):
@@ -228,10 +225,11 @@ def test_env_overwrite_from_config(caplog, cmd, ctrl, fabfile, mock, ployconf):
         'fabric-ham = egg',
         'fabric-shell = fooshell'])
     fabfile.fill([
+        'from __future__ import print_function',
         'from fabric.api import env',
         'def something():',
-        '    print "ham", env.ham',
-        '    print "shell", env.shell'])
+        '    print("ham", env.ham)',
+        '    print("shell", env.shell)'])
     with mock.patch('sys.stdout') as StdOutMock:
         StdOutMock.isatty.return_value = False
         try:

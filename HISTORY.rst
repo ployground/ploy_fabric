@@ -4,6 +4,9 @@ Changelog
 2.0.0 - Unreleased
 ------------------
 
+* Support Python 3.x via Fabric3.
+  [fschulze]
+
 * Support for ploy 2.0.0.
   [fschulze]
 
