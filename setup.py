@@ -15,7 +15,7 @@ extras_require = {}
 
 install_requires = [
     'setuptools',
-    'ploy >= 2dev']
+    'ploy >= 2.0.0b1']
 
 classifiers = [
     'Environment :: Console',
