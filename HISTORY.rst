@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.0.0 - Unreleased
-------------------
+2.0.0b1 - 2018-02-07
+--------------------
 
 * Support Python 3.x via Fabric3.
   [fschulze]

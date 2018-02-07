@@ -8,7 +8,7 @@ README = open(os.path.join(here, 'README.rst')).read()
 HISTORY = open(os.path.join(here, 'HISTORY.rst')).read()
 
 
-version = "2.0.0.dev0"
+version = "2.0.0b1"
 
 
 extras_require = {}
@@ -63,7 +63,7 @@ if get_environment_marker_support_level() >= 2:
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6'])
-if get_environment_marker_support_level() == 1:
+elif get_environment_marker_support_level() == 1:
     extras_require[':python_version<"3.0"'] = ['Fabric>=1.4.0,!=1.8.3']
     extras_require[':python_version>"3.0"'] = ['Fabric3>=1.10.2']
     extras_require[':sys_platform=="win32"'] = ['colorama']
