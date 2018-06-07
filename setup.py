@@ -12,13 +12,8 @@ version = "1.1.1dev"
 
 install_requires = [
     'setuptools',
-    'ploy >= 1.0.0, < 2dev']
-
-
-try:
-    import fabric  # noqa
-except ImportError:
-    install_requires.append('Fabric>=1.4.0,!=1.8.3')
+    'ploy >= 1.0.0, < 2dev',
+    'Fabric>=1.4.0,!=1.8.3,<2dev']
 
 
 setup(
@@ -33,7 +28,6 @@ setup(
     classifiers=[
         'Environment :: Console',
         'Intended Audience :: System Administrators',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 2 :: Only',
         'Topic :: System :: Installation/Setup',

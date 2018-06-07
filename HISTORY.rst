@@ -4,6 +4,8 @@ Changelog
 1.1.1 - Unreleased
 ------------------
 
+* Update requirements to block Fabric >= 2 as it isn't compatible.
+  [fschulze]
 
 
 1.1.0 - 2014-10-27
