@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.1.1 - Unreleased
+1.1.1 - 2018-06-07
 ------------------
 
 * Update requirements to block Fabric >= 2 as it isn't compatible.
