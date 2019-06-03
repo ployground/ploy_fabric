@@ -8,14 +8,14 @@ README = open(os.path.join(here, 'README.rst')).read()
 HISTORY = open(os.path.join(here, 'HISTORY.rst')).read()
 
 
-version = "2.0.0b1"
+version = "2.0.0b2"
 
 
 extras_require = {}
 
 install_requires = [
     'setuptools',
-    'ploy >= 2.0.0b1']
+    'ploy >= 2.0.0b2']
 
 classifiers = [
     'Environment :: Console',
@@ -57,25 +57,24 @@ def get_environment_marker_support_level():
 
 
 if get_environment_marker_support_level() >= 2:
-    install_requires.append('Fabric>=1.4.0,!=1.8.3;python_version<"3.0"')
-    install_requires.append('Fabric3>=1.10.2;python_version>"3.0"')
+    install_requires.append('Fabric>=1.4.0,!=1.8.3,<2dev;python_version<"3.0"')
+    install_requires.append('Fabric3>=1.10.2,<2dev;python_version>"3.0"')
     classifiers.extend([
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6'])
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'])
 elif get_environment_marker_support_level() == 1:
-    extras_require[':python_version<"3.0"'] = ['Fabric>=1.4.0,!=1.8.3']
-    extras_require[':python_version>"3.0"'] = ['Fabric3>=1.10.2']
-    extras_require[':sys_platform=="win32"'] = ['colorama']
+    extras_require[':python_version<"3.0"'] = ['Fabric>=1.4.0,!=1.8.3,<2dev']
+    extras_require[':python_version>"3.0"'] = ['Fabric3>=1.10.2,<2dev']
     classifiers.extend([
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6'])
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7'])
 else:
     if sys.version_info < (3, 0):
-        install_requires.append('Fabric>=1.4.0,!=1.8.3')
+        install_requires.append('Fabric>=1.4.0,!=1.8.3,<2dev')
     else:
-        install_requires.append('Fabric3>=1.10.2')
+        install_requires.append('Fabric3>=1.10.2,<2dev')
 
 
 setuptools.setup(
@@ -92,7 +91,7 @@ setuptools.setup(
     zip_safe=False,
     packages=['ploy_fabric'],
     install_requires=install_requires,
-    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
     entry_points="""
         [ploy.plugins]
         fabric = ploy_fabric:plugin
