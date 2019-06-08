@@ -91,6 +91,7 @@ setuptools.setup(
     zip_safe=False,
     packages=['ploy_fabric'],
     install_requires=install_requires,
+    extras_require=extras_require,
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
     entry_points="""
         [ploy.plugins]
