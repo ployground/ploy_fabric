@@ -1,7 +1,7 @@
 Changelog
 =========
 
-2.0.0b2 - Unreleased
+2.0.0b2 - 2019-06-09
 --------------------
 
 * Pin to Fabric < 2dev.
