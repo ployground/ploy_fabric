@@ -1,7 +1,7 @@
+from __future__ import print_function, unicode_literals
 from contextlib import contextmanager
 from functools import wraps
 import argparse
-import inspect
 import logging
 import os
 import sys
@@ -81,27 +81,6 @@ def cwd(path):
         os.chdir(orig_cwd)
 
 
-class DeprecationProxy:
-    def __init__(self, wrapped, name, new_name):
-        self.wrapped = wrapped
-        self.name = name
-        self.new_name = new_name
-        self.seen = set()
-
-    def __getattr__(self, name):
-        caller_frame = inspect.currentframe().f_back
-        info = inspect.getframeinfo(caller_frame)
-        orig_name = self.__dict__['name']
-        new_name = self.__dict__['new_name']
-        seen = self.__dict__['seen']
-        key = (info.filename, info.lineno)
-        if key not in seen:
-            seen.add(key)
-            log.warning("Use of deprecated variable name '%s', use '%s' instead.\n%s:%s\n%s" % (
-                orig_name, new_name, info.filename, info.lineno, ''.join(info.code_context)))
-        return getattr(self.__dict__['wrapped'], name)
-
-
 def get_fabric_env_settings(ctrl, instance):
     env = dict(
         reject_unknown_hosts=True,
@@ -134,9 +113,6 @@ def fabric_env(ctrl, instance, fabcmd=False):
         elif fabcmd:
             log.warn("Removed fab command line option %s because of overwrite for instance %s." % (option, instance.config_id))
     env_options[:] = new_options
-    for new_k, old_k in (('instances', 'servers'), ('instance', 'server')):
-        orig[old_k] = env.get(old_k, notset)
-        env[old_k] = DeprecationProxy(orig[new_k], old_k, new_k)
     try:
         yield env
     finally:
@@ -181,6 +157,7 @@ class FabricCmd(object):
 
     def __call__(self, argv, help):
         """Do stuff on the cluster (using fabric)"""
+        from ploy.common import sorted_choices
         parser = argparse.ArgumentParser(
             prog="%s fab" % self.ctrl.progname,
             description=help,
@@ -190,7 +167,8 @@ class FabricCmd(object):
         parser.add_argument("instance", nargs=1,
                             metavar="instance",
                             help="Name of the instance from the config.",
-                            choices=list(instances))
+                            type=str,
+                            choices=sorted_choices(instances))
         parser.add_argument("fabric_opts",
                             metavar="...", nargs=argparse.REMAINDER,
                             help="Fabric options")
@@ -214,11 +192,12 @@ class DoCmd(object):
         self.ctrl = ctrl
 
     def get_completion(self):
+        from ploy.common import sorted_choices
         instances = set()
         for instance in self.ctrl.get_instances(command='do'):
             if self.ctrl.instances[instance].has_fabfile():
                 instances.add(instance)
-        return sorted(instances)
+        return sorted_choices(instances)
 
     def __call__(self, argv, help):
         """Run a fabric task on an instance"""
@@ -228,6 +207,7 @@ class DoCmd(object):
         parser.add_argument("instance", nargs=1,
                             metavar="instance",
                             help="Name of the instance from the config.",
+                            type=str,
                             choices=self.get_completion())
         group = parser.add_mutually_exclusive_group(required=True)
         group.add_argument("task", nargs='?',
@@ -242,11 +222,11 @@ class DoCmd(object):
 
         instance = self.ctrl.instances[args.instance[0]]
         if args.list:
-            print "Available commands:"
-            print
+            print("Available commands:")
+            print()
             with callables(instance) as tasks:
                 for name in sorted(tasks):
-                    print "    %s" % name
+                    print("    %s" % name)
                 return
         task_args = []
         task_kwargs = {}
@@ -257,6 +237,21 @@ class DoCmd(object):
             else:
                 task_kwargs[parts[0]] = parts[1]
         instance.do(args.task, *task_args, **task_kwargs)
+
+
+exec_ = __builtins__.get('exec')
+if exec_ is None:
+    def exec_(_code_, _globs_=None, _locs_=None):
+        """Execute code in a namespace."""
+        if _globs_ is None:
+            frame = sys._getframe(1)
+            _globs_ = frame.f_globals
+            if _locs_ is None:
+                _locs_ = frame.f_locals
+            del frame
+        elif _locs_ is None:
+            _locs_ = _globs_
+        exec("""exec _code_ in _globs_, _locs_""")
 
 
 @contextmanager
@@ -270,7 +265,7 @@ def callables(instance):
             source = f.read()
         code = compile(source, fabfile, 'exec')
         g = {'__file__': fabfile}
-        exec code in g, g
+        exec_(code, g, g)
         new_style, classic, default = extract_tasks(g.items())
         callables = new_style if env.new_style_tasks else classic
         yield callables

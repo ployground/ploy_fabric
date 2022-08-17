@@ -1,8 +1,35 @@
 Changelog
 =========
 
-1.1.2 - Unreleased
-------------------
+2.0.0b3 - Unreleased
+--------------------
+
+* Dropped support for Python < 3.7.
+  [fschulze]
+
+* Added support up to Python 3.10.
+  [fschulze]
+
+
+2.0.0b2 - 2019-06-09
+--------------------
+
+* Pin to Fabric < 2dev.
+  [fschulze]
+
+* Drop Python 3.4 support.
+  [fschulze]
+
+
+2.0.0b1 - 2018-02-07
+--------------------
+
+* Support Python 3.x via Fabric3.
+  [fschulze]
+
+* Support for ploy 2.0.0.
+  [fschulze]
+
 
 1.1.1 - 2018-06-07
 ------------------
