@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.0.0b3 - Unreleased
---------------------
+2.0.0 - 2022-08-17
+------------------
 
 * Dropped support for Python < 3.7.
   [fschulze]
