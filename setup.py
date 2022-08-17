@@ -1,6 +1,5 @@
 import os
 import setuptools
-import sys
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -8,73 +7,23 @@ README = open(os.path.join(here, 'README.rst')).read()
 HISTORY = open(os.path.join(here, 'HISTORY.rst')).read()
 
 
-version = "2.0.0b2"
-
-
-extras_require = {}
+version = "2.0.0b3"
 
 install_requires = [
     'setuptools',
-    'ploy >= 2.0.0b3']
+    'ploy >= 2.0.0',
+    'Fabric>=1.4.0,!=1.8.3,<2dev']
 
 classifiers = [
     'Environment :: Console',
     'Intended Audience :: System Administrators',
     'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
     'Topic :: System :: Installation/Setup',
     'Topic :: System :: Systems Administration']
-
-
-def get_environment_marker_support_level():
-    """
-    Tests how well setuptools supports PEP-426 environment marker.
-
-    The first known release to support it is 0.7 (and the earliest on PyPI seems to be 0.7.2
-    so we're using that), see: https://setuptools.readthedocs.io/en/latest/history.html#id350
-
-    The support is later enhanced to allow direct conditional inclusions inside install_requires,
-    which is now recommended by setuptools. It first appeared in 36.2.0, went broken with 36.2.1, and
-    again worked since 36.2.2, so we're using that. See:
-    https://setuptools.readthedocs.io/en/latest/history.html#v36-2-2
-    https://github.com/pypa/setuptools/issues/1099
-
-    References:
-
-    * https://wheel.readthedocs.io/en/latest/index.html#defining-conditional-dependencies
-    * https://www.python.org/dev/peps/pep-0426/#environment-markers
-    * https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-platform-specific-dependencies
-    """
-    import pkg_resources
-    try:
-        version = pkg_resources.parse_version(setuptools.__version__)
-        if version >= pkg_resources.parse_version('36.2.2'):
-            return 2
-        if version >= pkg_resources.parse_version('0.7.2'):
-            return 1
-    except Exception as exc:
-        sys.stderr.write("Could not test setuptool's version: %s\n" % exc)
-    return 0
-
-
-if get_environment_marker_support_level() >= 2:
-    install_requires.append('Fabric>=1.4.0,!=1.8.3,<2dev;python_version<"3.0"')
-    install_requires.append('Fabric3>=1.10.2,<2dev;python_version>"3.0"')
-    classifiers.extend([
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7'])
-elif get_environment_marker_support_level() == 1:
-    extras_require[':python_version<"3.0"'] = ['Fabric>=1.4.0,!=1.8.3,<2dev']
-    extras_require[':python_version>"3.0"'] = ['Fabric3>=1.10.2,<2dev']
-    classifiers.extend([
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7'])
-else:
-    if sys.version_info < (3, 0):
-        install_requires.append('Fabric>=1.4.0,!=1.8.3,<2dev')
-    else:
-        install_requires.append('Fabric3>=1.10.2,<2dev')
 
 
 setuptools.setup(
@@ -91,8 +40,7 @@ setuptools.setup(
     zip_safe=False,
     packages=['ploy_fabric'],
     install_requires=install_requires,
-    extras_require=extras_require,
-    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*',
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, !=3.6.*',
     entry_points="""
         [ploy.plugins]
         fabric = ploy_fabric:plugin

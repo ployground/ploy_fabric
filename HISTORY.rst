@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2.0.0b3 - Unreleased
+--------------------
+
+* Dropped support for Python < 3.7.
+  [fschulze]
+
+* Added support up to Python 3.10.
+  [fschulze]
+
+
 2.0.0b2 - 2019-06-09
 --------------------
 
