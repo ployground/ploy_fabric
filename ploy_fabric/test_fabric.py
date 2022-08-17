@@ -118,26 +118,6 @@ class TestDoCommand:
         output = "".join(x[0][0] for x in StdOutMock.write.call_args_list)
         assert 'bararg' in output
 
-    def testObsolete(self, caplog, ctrl, fabfile, ployconf):
-        ployconf.fill([
-            '[dummy-instance:foo]',
-            'host = localhost',
-            'fabfile = %s' % fabfile.path])
-        fabfile.fill([
-            'from fabric.api import env',
-            'def something(fooarg="foo"):',
-            '    print(env.server)'])
-        with pytest.raises(AttributeError) as e:
-            ctrl(['./bin/ploy', 'do', 'foo', 'something'])
-        assert str(e.value) == 'server'
-        fabfile.fill([
-            'from fabric.api import env',
-            'def something(fooarg="foo"):',
-            '    print(env.servers)'])
-        with pytest.raises(AttributeError) as e:
-            ctrl(['./bin/ploy', 'do', 'foo', 'something'])
-        assert str(e.value) == 'servers'
-
 
 class TestFabCommand:
     def testCallWithExistingInstanceButTooViewArguments(self, ctrl, mock, ployconf):
